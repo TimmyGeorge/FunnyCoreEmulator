@@ -1,6 +1,6 @@
 Usage: `otg.exe program [-D'|-D] [r1] [r2] [r3] [r4] [r5] [r6] [r7] [r8] [r9] [r10] [r11] [r12] [r13] [r14] [r15]`
   - `program`
-      - the name of program to run
+      - the name of file containing the program to run
   - `D'`
       - specifies the program is not the division program in our coursework.
       - use this to run any program you want
