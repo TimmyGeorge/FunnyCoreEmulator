@@ -90,6 +90,12 @@ static_assert(MAX_OPC_LEN + 1 == OPC_READ_BUF_LEN);
 #define JZ   "jz"
 #define JP   "jp"
 
+#define MAX_DBG_CMD 8
+#define MAX_DBG_CMD_TO_READ 9
+static_assert(MAX_DBG_CMD_TO_READ > MAX_DBG_CMD);
+#define DBG_CMD_BUF_SIZE (MAX_DBG_CMD_TO_READ + 1)
+#define MAX_DBG_CMD_TO_READ_STR STR(MAX_DBG_CMD_TO_READ)
+
 //--------------------------------- END TYPEDEFS, MACROS -----------------------------------
 //------------------------------------------------------------------------------------------
 
@@ -203,13 +209,6 @@ enum opc_t {
 	opc_jp = 9
 };
 
-struct dbg_cmd_t {
-	char s[DBG_CMD_BUF_SIZE];
-	size_t n;
-};
-
-int dbg_hash(const struct dbg_cmd_t* const cmd);
-
 enum get_dbg_cmd_t {
 	get_dbg_cmd_stx_err,
 	get_dbg_cmd_int_err,
@@ -217,13 +216,6 @@ enum get_dbg_cmd_t {
 	get_dbg_cmd_eof,
 };
 
-enum get_dbg_cmd_t get_dbg_cmd(const struct dbg_cmd_t* const cmd);
-
-#define MAX_DBG_CMD 8
-#define MAX_DBG_CMD_TO_READ 9
-static_assert(MAX_DBG_CMD_TO_READ > MAX_DBG_CMD)
-#define DBG_CMD_BUF_SIZE (MAX_DBG_CMD_TO_READ + 1)
-#define MAX_DBG_CMD_TO_READ_STR STR(MAX_DBG_CMD_TO_READ)
 enum dbg_hash_t {
 	dbg_hash_step = 's',
 	dbg_hash_continue = 'c',
@@ -233,9 +225,10 @@ enum dbg_hash_t {
 	dbg_hash_break = 'b',
 	dbg_hash_run = 'r',
 	dbg_hash_kill = 'k',
-}
+};
+
 enum dbg_cmd_t {
-	dbg_hash_step,
+	dbg_cmd_step,
 	dbg_cmd_continue,
 	dbg_cmd_disable,
 	dbg_cmd_enable,
@@ -243,12 +236,6 @@ enum dbg_cmd_t {
 	dbg_cmd_break,
 	dbg_cmd_run,
 	dbg_cmd_kill
-}
-struct file_t stdoutf = struct file_t {
-	.stream = stdout,
-	.name = "stdout",
-	.line = 1,
-	.pos = 0	
 };
 
 //---------------------------------------- END ENUM ----------------------------------------
@@ -256,6 +243,11 @@ struct file_t stdoutf = struct file_t {
 
 //------------------------------------------------------------------------------------------
 //-------------------------------------- BEG STRUCTS ---------------------------------------
+struct dbg_cmd_str_t {
+	char s[DBG_CMD_BUF_SIZE];
+	size_t n;
+};
+
 struct ctx_t {
 	const char* filename;
 	const char* func;
@@ -303,7 +295,9 @@ static const char* const opc_strs[] = {
 	[opc_jp] = JP
 };
 
-//-------------------------------------- ENUM GLOBALS ---------------------------------------
+struct file_t stdoutf;
+
+//-------------------------------------- END GLOBALS ---------------------------------------
 //------------------------------------------------------------------------------------------
 
 //-------------------------------------- END STRUCTS ---------------------------------------
@@ -336,12 +330,6 @@ static enum chk_fscanf_t chk_fscanf(
 	const int num_asn_exp,
 	const int asn
 );
-static enum chk_fscanf_t chk_fscanf_npae(
-	const struct ctx_t* const ctx, 
-	const struct file_t* const file,
-	const int num_asn_exp,
-	const int asn
-);
 static bool seek_fpi(struct file_t* const file);
 static void seek_beg(struct file_t* const file);
 static enum get_t get(int* const c, struct file_t* const file);
@@ -359,6 +347,7 @@ static enum go_ovr_nl_t go_ovr_chk_get(
 	enum get_t ret
 );
 static enum go_ovr_nl_t go_ovr_nl(struct file_t* const file, int* const o_c);
+void init_stdoutf(void);
 //-------------------------------------  END FILE_T  ---------------------------------------
 //------------------------------------------------------------------------------------------
 
@@ -584,6 +573,15 @@ static enum get_op_t get_op(struct file_t* const file, struct op_t* const op);
 static enum get_ops_t get_ops(const char* const filename, struct ops_t* const ops);
 //-------------------------------------- END GET OPS ---------------------------------------
 //------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------
+//--------------------------------------- BEG DEBUG ----------------------------------------
+int dbg_hash(const struct dbg_cmd_str_t* const cmd);
+enum get_dbg_cmd_t get_dbg_cmd(struct dbg_cmd_str_t* const cmd);
+//--------------------------------------- END DEBUG ----------------------------------------
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+
 
 //------------------------------------------------------------------------------------------
 //--------------------------------------- BEG EXEC -----------------------------------------
@@ -958,6 +956,13 @@ static enum go_ovr_nl_t go_ovr_nl(struct file_t* const file, int* const o_c){
 		return go_ovr_nl_ok;
 	*o_c = c;
 	return go_ovr_nl_non_nl;
+}
+
+void init_stdoutf(void){
+	stdoutf.stream = stdout;
+	stdoutf.name = "stdout";
+	stdoutf.line = 1;
+	stdoutf.pos = 0;
 }
 
 //-------------------------------------  END FILE_T  ---------------------------------------
@@ -2009,29 +2014,33 @@ static enum get_ops_t get_ops(const char* filename, struct ops_t* o_ops){
 	kill
 */
 
-int dbg_hash(const struct dbg_cmd_t* const cmd){
+int dbg_hash(const struct dbg_cmd_str_t* const cmd){
 	return cmd->s[0];
 }
 
-enum get_dbg_cmd_t get_dbg_cmd(const struct dbg_cmd_t* const cmd){
+enum get_dbg_cmd_t get_dbg_cmd(struct dbg_cmd_str_t* const cmd){
 	struct ctx_t ctx;
 	int n;
-	ctx = init_ctx(__FILE__, __LINE__);
+	ctx = init_ctx(__FILE__, __func__);
 	n = 0;
 	const int exp_asn = 1;
 	const int asn = fscanf(stdoutf.stream, " %"MAX_DBG_CMD_TO_READ_STR"s%n", cmd->s, &n);
 	set_line(&ctx, __LINE__);
 	mov_pos(&stdoutf, n);
-	const enum chk_fscanf_t ret = chk_fscanf_npae(&cont, &stdoutf, exp_asn, asn);
-	//go through different cases
+	const enum chk_fscanf_t ret = chk_fscanf_dpae(&ctx, &stdoutf, exp_asn, asn);
+	//not finished
+	(void)ret;
+	return 0;
+	//might need to use a different function for fscanf
+	//go through different cases here
 }
 
-static long long dbg(const struct ops_t ops, regv_t* const regs, ){
+static long long dbg(const struct ops_t ops, regv_t* const regs){
 	long long cyc;
 	pos_t ip;
 	ip = 0;
 	cyc = 0;
-	scanf(
+	/* get command here */
 	while (ip != ops.n){
 		const struct op_t op = ops.b[ip];
 		++ip;
@@ -2122,6 +2131,10 @@ static long long dbg(const struct ops_t ops, regv_t* const regs, ){
 			}
 		}
 	}
+	(void)ip;
+	(void)cyc;
+	(void)ops;
+	(void)regs;
 	return cyc;
 }
 
@@ -2238,6 +2251,7 @@ int main(const int argc, const char* const argv[argc]){
 	struct ops_t ops;
 	regv_t regs[NUM_REG] = {};
 	bool succ;
+	init_stdoutf();
 	if (argc < min_num_cmd_args){
 		rpt_few_args(argc);
 		return EXIT_FAILURE;
@@ -2272,7 +2286,7 @@ int main(const int argc, const char* const argv[argc]){
 		free(ops.b);
 		return EXIT_FAILURE;
 	}
-	const long long cyc = exec(ops, regs);
+	const long long cyc = (/* some condition*/ 0) ? dbg(ops, regs) : exec(ops, regs);
 	rpt_regs(regs);
 	rpt_cyc(cyc);
 	free(ops.b);
