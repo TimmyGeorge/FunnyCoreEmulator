@@ -1,0 +1,18 @@
+run timmy
+run timmy 25
+run timmy hithere
+run timmy -D
+run timmy -D'
+run timmy -D 25
+run timmy -D' 25
+run timmy -D 23 43 -1
+run timmy -D' 23 43 -1
+run timmy 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+run timmy -D' 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+run timmy -D' 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+run sample_programs/sum.txt -D'
+run sample_programs/sum_e1.txt -D'
+run sample_programs/sum_e2.txt -D'
+run sample_programs/sum_e3.txt -D'
+run sample_programs/sum_e4.txt -D'	-> causing an error
+run sample_programs/sum_e5.txt -D'

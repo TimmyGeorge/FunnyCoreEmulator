@@ -1,0 +1,16 @@
+divisor = divisor << 15
+repeat 16 times
+	dividend = divident - divisor
+	if divident < 0
+		divident = divident + divisor
+		divident = divident << 1
+	else
+		divident << 1
+		divident = divident | 1
+quotient = dividend | 0xFFFF
+remainder = dividend >> 16
+
+dividend 0 
+divisor 1
+quotient 2
+remainder 3
