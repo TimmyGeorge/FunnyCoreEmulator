@@ -25,7 +25,7 @@ typedef uint_least16_t uimm_t;
 
 typedef int_fast32_t regv_t;
 #define PRIregv PRIdFAST32 
-#define SCNregv SCNdFAST32 
+#define SCNregv SCNiFAST32 
 #define REGV_WIDTH 32
 #define REGV_AMIN INT_FAST32_MIN
 #define REGV_AMAX INT_FAST32_MAX
