@@ -1,3 +1,5 @@
+This project is currently incomplete. Debug Mode still needs to be added and the error in the virtual machine `exec` function needs to be identified.
+
 Usage: `otg.exe program [-D'|-D] [r1] [r2] [r3] [r4] [r5] [r6] [r7] [r8] [r9] [r10] [r11] [r12] [r13] [r14] [r15]`
   - `program`
       - the name of file containing the program to run
